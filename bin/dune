@@ -1,0 +1,9 @@
+(executable
+ (public_name mini_ml)
+ (name main))
+
+(ocamllex lexer)
+
+(menhir 
+ (flags --explain)
+ (modules parser))
