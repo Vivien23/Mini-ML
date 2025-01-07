@@ -4,6 +4,10 @@
 
 (ocamllex lexer)
 
+(env
+  (dev
+    (flags (:standard -warn-error -A))))
+    
 (menhir 
  (flags --explain)
  (modules parser))

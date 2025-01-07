@@ -10,7 +10,8 @@ let nom_fichier = ref ""
 let recupere_entree () =
   let optlist = [
     ("-showsrc", Arg.Set showsrc, "Affiche le programme écrit en entrée");
-    ("-debug", Arg.Set debug, "Active le mode de debuggage")
+    ("-debug", Arg.Set debug, "Active le mode de debuggage");
+    ("-id", Arg.Set is_id, "Detecte les fonctions équivalentes à l'identité")
   ] in
 
   let help = "Aide de fouine" in
@@ -30,6 +31,7 @@ let execute e =
   begin
     if !showsrc || !debug then begin affiche_src e; print_newline() end;
     if !debug then begin affiche_expr e; print_newline() end;
+    if !is_id then begin Is_id.main e end;
     let v =  Expr.eval e Expr.empty_env in
     if !debug then begin affiche_val v; print_newline() end;
   end

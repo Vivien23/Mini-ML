@@ -4,6 +4,7 @@ open Ast
 Add of expr * expr et non Add of aexpr * aexpr *)
 
 let debug = ref false
+let is_id = ref false
 let showsrc = ref false
 
 let empty_env = [("prInt", VFun(EVar("a"), Print (Var "a"), []))]
