@@ -3,7 +3,7 @@ open Ast
 (* On ne choisi de ne pas typer ici les constructeurs :
 Add of expr * expr et non Add of aexpr * aexpr *)
 
-let debug = ref false
+let debug = ref true
 let is_id = ref false
 let showsrc = ref false
 
