@@ -102,9 +102,9 @@ and eval e env = match e with
                 | _ -> failwith "Wrong type (ifte)")
         | Print a -> print (eval a env)
         | Var v -> getval v env
-        | LetIn (v, e1, e2) -> let va = eval e1 env in 
-                               let rec f v va env =  (* Elle renvoie le nouvel environnement avec v à la valeur va *)
-                               (match v with
+        | LetIn (var_l, e1, e2) -> let va = eval e1 env in 
+                               let rec f var_l va env =  (* Elle renvoie le nouvel environnement avec v à la valeur va *)
+                               (match var_l with
                                 | EVar("_") -> env
                                 | ECouple(n1, n2) -> (* Cas des lets déconstructifs*) 
                                         (match va with
@@ -114,7 +114,7 @@ and eval e env = match e with
                                         | VRef (false, value) -> ((s, VRef (true, VInt (ref_add s value)))::env)
                                         | VRef (true, value) -> ((s, VRef (true, value))::env)
                                         | _ -> ((s, va)::env)))
-                                in eval e2 (f v va env)
+                                in eval e2 (f var_l va env)
         | Fun (arg, e1) -> VFun (arg, e1, env) (* Arg peut être de la forme (x, y) *)
         | Appl (e1, e2) -> eval_fun (eval e1 env) (eval e2 env)
         | Ref e -> VRef (false, eval e env)
