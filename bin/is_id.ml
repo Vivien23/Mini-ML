@@ -1,15 +1,5 @@
 open Ast
 
-let is_fun_id e =
-  let is_fun_id_aux e_c e_g =
-    (* Reach normal form on e_c *)
-    if e_c == e_g then print_string "true"
-    else print_string "false"
-    (* Apply derivation rules *)
-  in
-  is_fun_id_aux e (Fun(EVar "x", Var "x"))
-;;
-
 let rec in_var_l x var_l = 
   match var_l with
   | EVar(var) -> x = var
@@ -66,6 +56,17 @@ let rec normalize e =
   | Assoc _ -> failwith "effet de bord -> boom"
   | Couple(e1, e2) -> Couple(normalize e1, normalize e2)
   | Match _ -> failwith "complicated stuff"
+;;
+
+let is_fun_id e =
+  let is_fun_id_aux e_c e_g =
+    (* Reach normal form on e_c *)
+    let e_c = normalize e_c in 
+    if e_c == e_g then print_string "true"
+    else print_string "false"
+    (* Apply derivation rules *)
+  in
+  is_fun_id_aux e (Fun(EVar "x", Var "x"))
 ;;
 
 let main e =
