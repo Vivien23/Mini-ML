@@ -49,8 +49,8 @@ let rec normalize e =
   | Print _ ->  failwith "effet de bord -> boom"
   | Var v -> Var v
   | LetIn (var_l, e1, e2) -> let e1_n = normalize e1 in normalize (subst_var_l e2 var_l e1_n)
-  | Fun (arg, e1) -> Fun(arg, e1)
-  | Appl (_, _) -> failwith "todo"
+  | Fun (arg, e1) -> Fun(arg, normalize e1)
+  | Appl (_, _) -> failwith "todo" (* Choix important : comment traiter les variables définies plus globalement ? Pour l'instant, elles ne sont pas explorées *)
   | Ref _ -> failwith "effet de bord -> boom"
   | Bang _ -> failwith "todo"
   | Assoc _ -> failwith "effet de bord -> boom"
@@ -62,8 +62,13 @@ let is_fun_id e =
   let is_fun_id_aux e_c e_g =
     (* Reach normal form on e_c *)
     let e_c = normalize e_c in 
-    if e_c == e_g then print_string "true"
-    else print_string "false"
+    print_string "e_c = "; let _ =  Affichage.affiche_expr e_c in
+    print_string "; ";
+    print_string "e_g = "; let _ =  Affichage.affiche_expr e_g in
+    print_string "\n";
+    if e_c = e_g then print_string "true\n"
+    else print_string "false\n"
+
     (* Apply derivation rules *)
   in
   is_fun_id_aux e (Fun(EVar "x", Var "x"))
@@ -94,4 +99,4 @@ let main e =
   | Fun (_, e1) -> is_fun_id e; parcours e1
   in
   parcours e
-;;
+;; 
