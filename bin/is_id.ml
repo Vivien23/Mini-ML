@@ -1,5 +1,11 @@
 open Ast
 
+let rec expr_match_to_expr var_l =
+match var_l with 
+| EVar(var) -> Var(var)
+| ECouple(vl1, vl2) -> Couple(expr_match_to_expr vl1, expr_match_to_expr vl2)
+;;
+
 let rec in_var_l x var_l = 
   match var_l with
   | EVar(var) -> x = var
@@ -50,7 +56,8 @@ let rec normalize e =
   | Var v -> Var v
   | LetIn (var_l, e1, e2) -> let e1_n = normalize e1 in normalize (subst_var_l e2 var_l e1_n)
   | Fun (arg, e1) -> Fun(arg, normalize e1)
-  | Appl (_, _) -> failwith "todo" (* Choix important : comment traiter les variables définies plus globalement ? Pour l'instant, elles ne sont pas explorées *)
+  | Appl (Fun(var_l, e1), e2) -> let e1_n = normalize e1 in normalize (subst_var_l e2 var_l e1_n) 
+  | Appl _ -> failwith "Global env call" (* Choix important : comment traiter les variables définies plus globalement ? Pour l'instant, elles ne sont pas explorées *)
   | Ref _ -> failwith "effet de bord -> boom"
   | Bang _ -> failwith "todo"
   | Assoc _ -> failwith "effet de bord -> boom"
@@ -58,15 +65,48 @@ let rec normalize e =
   | Match _ -> failwith "complicated stuff"
 ;;
 
+let rec expr_eq e1 e2 =
+  match e1, e2 with
+  | Const i1, Const i2-> (i1 = i2)
+  | Bool b1, Bool b2  -> (b1 = b2)
+  | Not b1, Not b2 -> (b1 = b2)
+
+  | Var v1, Var v2 -> (v1 = v2)
+  | LetIn (var_l1, e11, e12), LetIn (var_l2, e21, e22) -> (expr_eq e11 e21) && (expr_eq e12 (LetIn(var_l1, e21, subst_var_l e22 var_l2 (expr_match_to_expr var_l1))))
+  | Fun (vl1, e1), Fun(vl2, e2) -> expr_eq e1 (subst_var_l e2 vl2 (expr_match_to_expr vl1))
+
+  | Appl (_, _), Appl(_, _) -> failwith "todo" (* Choix important : comment traiter les variables définies plus globalement ? Pour l'instant, elles ne sont pas explorées *)
+  | Bang _, Bang _ -> failwith "todo"
+  | Couple(e11, e12), Couple(e21, e22) -> (expr_eq e11 e21) && (expr_eq e12 e22)
+
+
+  | Arth _, Arth _-> failwith "stuff" 
+  | Boop _, Boop _ ->  failwith "stuff"
+  | Comp _, Comp _ -> failwith "stuff"
+
+  | Ref _, Ref _ -> failwith "effet de bord -> boom"
+  | Assoc _, Assoc _ -> failwith "effet de bord -> boom"
+  | Print _, Print _ ->  failwith "effet de bord -> boom"
+
+  | Match _, Match _ -> failwith "complicated stuff"
+  | IfThenElse _, IfThenElse _ ->  failwith "complicated stuff"
+
+  | _ -> false
+;;
+;;
+
 let is_fun_id e =
   let is_fun_id_aux e_c e_g =
     (* Reach normal form on e_c *)
     let e_c = normalize e_c in 
+    if !Expr.debug then
+    begin
     print_string "e_c = "; let _ =  Affichage.affiche_expr e_c in
     print_string "; ";
     print_string "e_g = "; let _ =  Affichage.affiche_expr e_g in
     print_string "\n";
-    if e_c = e_g then print_string "true\n"
+    end;
+    if (expr_eq e_c  e_g) then print_string "true\n"
     else print_string "false\n"
 
     (* Apply derivation rules *)
@@ -96,7 +136,7 @@ let main e =
   | Const _ -> ()
   | Bool _ -> ()
 
-  | Fun (_, e1) -> is_fun_id e; parcours e1
+  | Fun (_, e1) -> print_string "Entering\n"; is_fun_id e; parcours e1
   in
   parcours e
 ;; 
