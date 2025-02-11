@@ -1,3 +1,3 @@
-let f u = 
-  let y = u in y
+let f x = 
+  let y = x in y
 in f 1
