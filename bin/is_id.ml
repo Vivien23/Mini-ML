@@ -19,7 +19,7 @@ let rec subst_var_l e2 var_l e1 =
   | ECouple(vl1, vl2) -> match e1 with | Couple(e1_1, e1_2) -> subst_var_l (subst_var_l e2 vl1 e1_1) vl2 e1_2 
                                        | _ -> failwith "not typed"
 and subst e2 x e1 = 
-  let k e = subst e x e1 in
+  let k e = subst e x e1 in 
   match e2 with 
   | LetIn (var_l, e'1, e'2) ->  if in_var_l x var_l then failwith "Substitution illégale" else LetIn(var_l, k e'1, k e'2)
   | Fun (var_l, e) -> if in_var_l x var_l then failwith "Substitution illégale" else  Fun(var_l, k e) 
@@ -41,6 +41,37 @@ and subst e2 x e1 =
   | Var var when var = x -> e1
 
   | _ -> e2
+;;
+
+let head_eta e_cur ~target:e_tar = 
+  match e_cur with
+  | Fun(var_l, e) -> (match var_l with
+                      | EVar(var) -> e, Appl(e_tar, Var(var))
+                      | ECouple _ -> failwith "edgecase")
+                      
+  | _ -> (e_cur, e_tar)
+;;
+
+let rec head_norm e =
+  match e with
+  | Const i -> Const i
+  | Bool b -> Bool b
+  | Arth (_, _, _) -> failwith "stuff" 
+  | Boop(_, _, _) ->  failwith "stuff"
+  | Comp(_, _, _) -> failwith "stuff"
+  | Not b -> Not (head_norm b)
+  | IfThenElse (_, _, _) ->  failwith "complicated stuff"
+  | Print _ ->  failwith "effet de bord -> boom"
+  | Var v -> Var v
+  | LetIn (var_l, e1, e2) -> subst_var_l e2 var_l e1
+  | Fun _ -> e
+  | Appl (Fun(var_l, e1), e2) -> subst_var_l e2 var_l e1
+  | Appl _ -> e
+  | Ref _ -> failwith "effet de bord -> boom"
+  | Bang _ -> failwith "todo"
+  | Assoc _ -> failwith "effet de bord -> boom"
+  | Couple _ -> e
+  | Match _ -> failwith "complicated stuff"
 ;;
 
 let rec normalize e = 
@@ -75,7 +106,7 @@ let rec expr_eq e1 e2 =
   | LetIn (var_l1, e11, e12), LetIn (var_l2, e21, e22) -> (expr_eq e11 e21) && (expr_eq e12 (LetIn(var_l1, e21, subst_var_l e22 var_l2 (expr_match_to_expr var_l1))))
   | Fun (vl1, e1), Fun(vl2, e2) -> expr_eq e1 (subst_var_l e2 vl2 (expr_match_to_expr vl1))
 
-  | Appl (_, _), Appl(_, _) -> failwith "todo" (* Choix important : comment traiter les variables définies plus globalement ? Pour l'instant, elles ne sont pas explorées *)
+  | Appl (e11, e12), Appl(e21, e22) -> expr_eq e11 e21 && expr_eq e12 e22
   | Bang _, Bang _ -> failwith "todo"
   | Couple(e11, e12), Couple(e21, e22) -> (expr_eq e11 e21) && (expr_eq e12 e22)
 
@@ -96,22 +127,19 @@ let rec expr_eq e1 e2 =
 ;;
 
 let is_fun_id e =
-  let is_fun_id_aux e_c e_g =
+  let rec is_fun_id_aux e_c ~target:e_g =
     (* Reach normal form on e_c *)
-    let e_c = normalize e_c in 
-    if !Expr.debug then
-    begin
-    print_string "e_c = "; let _ =  Affichage.affiche_expr e_c in
-    print_string "; ";
-    print_string "e_g = "; let _ =  Affichage.affiche_expr e_g in
-    print_string "\n";
-    end;
-    if (expr_eq e_c  e_g) then print_string "true\n"
-    else print_string "false\n"
+    if (expr_eq e_c e_g) then "true\n"
+    else begin
+    let e_c_old = e_c in
+    let e_c = head_norm e_c in
+    let e_c, e_g = head_eta e_c ~target:e_g in
+    let e_g = head_norm e_g in
 
-    (* Apply derivation rules *)
+    if (expr_eq e_c e_c_old) then "false\n"
+    else is_fun_id_aux e_c ~target:e_g end
   in
-  is_fun_id_aux e (Fun(EVar "x", Var "x"))
+  is_fun_id_aux e ~target:(Fun(EVar "x", Var "x"))
 ;;
 
 let main e =
@@ -136,7 +164,7 @@ let main e =
   | Const _ -> ()
   | Bool _ -> ()
 
-  | Fun (_, e1) -> print_string "Entering\n"; is_fun_id e; parcours e1
+  | Fun (_, e1) -> print_string "Entering\n"; Affichage.affiche_expr e; print_string "\n"; print_string (is_fun_id e); parcours e1
   in
   parcours e
 ;; 
